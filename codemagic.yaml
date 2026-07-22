@@ -5,7 +5,7 @@ workflows:
     name: 1GK iOS - build and upload to TestFlight
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: 1GK ASC Key   # must match the API-key name you add in Codemagic
+      app_store_connect: 1GK ASC Key
     environment:
       ios_signing:
         distribution_type: app_store
@@ -18,7 +18,7 @@ workflows:
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build the .ipa
-        script: xcode-project build-ipa --workspace "1GK.xcworkspace" --scheme "1GK"
+        script: set -o pipefail; xcodebuild -workspace "1GK.xcworkspace" -scheme "1GK" -archivePath build/1GK.xcarchive archive DEVELOPMENT_TEAM=N27MKD3NDV CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" 2>&1 | tail -150
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
