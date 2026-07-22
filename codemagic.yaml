@@ -18,7 +18,7 @@ workflows:
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build the .ipa
-        script: set -o pipefail; xcodebuild -workspace "1GK.xcworkspace" -scheme "1GK" -archivePath build/1GK.xcarchive archive DEVELOPMENT_TEAM=N27MKD3NDV CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" 2>&1 | tail -150
+        script: xcode-project build-ipa --workspace "1GK.xcworkspace" --scheme "1GK" --archive-flags="-destination 'generic/platform=iOS'"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
