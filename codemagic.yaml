@@ -1,0 +1,27 @@
+# Build the 1GK iOS app on Codemagic's cloud Macs and ship it to TestFlight.
+# This file tells Codemagic how to build, sign and upload the app.
+workflows:
+  ios-release:
+    name: 1GK iOS - build and upload to TestFlight
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: 1GK ASC Key   # must match the API-key name you add in Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.intelligentgk.app
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies (CocoaPods)
+        script: pod install
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build the .ipa
+        script: xcode-project build-ipa --workspace "1GK.xcworkspace" --scheme "1GK"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
