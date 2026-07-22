@@ -10,7 +10,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.intelligentgk.app
-      xcode: 16.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Install dependencies (CocoaPods)
