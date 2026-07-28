@@ -1,5 +1,6 @@
 import UIKit
 import WebKit
+import StoreKit
 
 var webView: WKWebView! = nil
 
@@ -41,6 +42,7 @@ class ViewController: UIViewController, WKNavigationDelegate, UIDocumentInteract
         initWebView()
         initToolbarView()
         loadRootUrl()
+        IAPManager.shared.start()
     
         NotificationCenter.default.addObserver(self, selector: #selector(self.keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification , object: nil)
         
@@ -272,5 +274,141 @@ extension ViewController: WKScriptMessageHandler {
         if message.name == "push-token" {
             handleFCMToken()
         }
+        if message.name == "iapSubscribe" {
+            if let body = message.body as? [String: Any], let product = body["product"] as? String {
+                IAPManager.shared.buy(productId: product)
+            } else {
+                IAPManager.callback(["error": "no-product"])
+            }
+        }
   }
+}
+
+// MARK: - In-App Purchases (StoreKit 1) for the 1GK Premium subscription.
+// The web app calls window.webkit.messageHandlers.iapSubscribe.postMessage({product: "..."})
+// to start a purchase, and this manager calls back into the page via
+// window.iapResult({receipt: "<base64>"}) or window.iapResult({error: "..."}).
+// The base64 App Store receipt is what the verify-purchase edge function needs.
+final class IAPManager: NSObject, SKProductsRequestDelegate, SKPaymentTransactionObserver {
+    static let shared = IAPManager()
+
+    private var productsRequest: SKProductsRequest?
+    private var receiptRefreshRequest: SKReceiptRefreshRequest?
+    private var pendingProductId: String?
+    private var fetchedProducts: [String: SKProduct] = [:]
+    private var pendingFinishTx: SKPaymentTransaction?
+    private var didRefreshReceipt = false
+
+    // Begin observing the payment queue (resumes any interrupted transactions).
+    func start() {
+        SKPaymentQueue.default().add(self)
+    }
+
+    // Start buying the given product id (fetches product details first if needed).
+    func buy(productId: String) {
+        guard SKPaymentQueue.canMakePayments() else {
+            IAPManager.callback(["error": "payments-disabled"])
+            return
+        }
+        pendingProductId = productId
+        if let product = fetchedProducts[productId] {
+            SKPaymentQueue.default().add(SKPayment(product: product))
+        } else {
+            let req = SKProductsRequest(productIdentifiers: [productId])
+            req.delegate = self
+            productsRequest = req
+            req.start()
+        }
+    }
+
+    // MARK: SKProductsRequestDelegate
+    func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
+        for p in response.products { fetchedProducts[p.productIdentifier] = p }
+        if let pid = pendingProductId, let product = fetchedProducts[pid] {
+            SKPaymentQueue.default().add(SKPayment(product: product))
+        } else {
+            IAPManager.callback(["error": "product-not-found"])
+        }
+    }
+
+    // MARK: SKRequestDelegate (covers products request + receipt refresh failures)
+    func request(_ request: SKRequest, didFailWithError error: Error) {
+        if request is SKReceiptRefreshRequest {
+            if let tx = pendingFinishTx {
+                SKPaymentQueue.default().finishTransaction(tx)
+                pendingFinishTx = nil
+            }
+            IAPManager.callback(["error": "receipt-unavailable"])
+        } else {
+            IAPManager.callback(["error": "product-request-failed"])
+        }
+    }
+
+    func requestDidFinish(_ request: SKRequest) {
+        guard request is SKReceiptRefreshRequest else { return }
+        if let receipt = loadReceiptBase64() {
+            IAPManager.callback(["receipt": receipt])
+        } else {
+            IAPManager.callback(["error": "receipt-unavailable"])
+        }
+        if let tx = pendingFinishTx {
+            SKPaymentQueue.default().finishTransaction(tx)
+            pendingFinishTx = nil
+        }
+    }
+
+    // MARK: SKPaymentTransactionObserver
+    func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
+        for tx in transactions {
+            switch tx.transactionState {
+            case .purchased, .restored:
+                sendReceiptThenFinish(tx)
+            case .failed:
+                if (tx.error as? SKError)?.code == .paymentCancelled {
+                    IAPManager.callback(["error": "cancelled"])
+                } else {
+                    IAPManager.callback(["error": "purchase-failed"])
+                }
+                SKPaymentQueue.default().finishTransaction(tx)
+            case .deferred, .purchasing:
+                break
+            @unknown default:
+                break
+            }
+        }
+    }
+
+    private func sendReceiptThenFinish(_ tx: SKPaymentTransaction) {
+        if let receipt = loadReceiptBase64() {
+            IAPManager.callback(["receipt": receipt])
+            SKPaymentQueue.default().finishTransaction(tx)
+            didRefreshReceipt = false
+        } else if !didRefreshReceipt {
+            // Receipt not written yet: refresh it, then finish on requestDidFinish.
+            didRefreshReceipt = true
+            pendingFinishTx = tx
+            let refresh = SKReceiptRefreshRequest()
+            refresh.delegate = self
+            receiptRefreshRequest = refresh
+            refresh.start()
+        } else {
+            IAPManager.callback(["error": "receipt-unavailable"])
+            SKPaymentQueue.default().finishTransaction(tx)
+        }
+    }
+
+    private func loadReceiptBase64() -> String? {
+        guard let url = Bundle.main.appStoreReceiptURL,
+              let data = try? Data(contentsOf: url) else { return nil }
+        return data.base64EncodedString()
+    }
+
+    // Send a JSON payload to window.iapResult in the web app (on the main thread).
+    static func callback(_ payload: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+        DispatchQueue.main.async {
+            _1GK.webView?.evaluateJavaScript("window.iapResult && window.iapResult(\(json))", completionHandler: nil)
+        }
+    }
 }
