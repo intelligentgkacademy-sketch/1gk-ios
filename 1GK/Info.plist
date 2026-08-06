@@ -32,7 +32,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSApplicationCategoryType</key>
@@ -94,7 +94,7 @@
 	<true/>
 	<key>WKAppBoundDomains</key>
 	<array>
-		<string>1ntelligentgk.netlify.app/tracker-app.html</string>
+		<string>book.intelligentgk.com</string>
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

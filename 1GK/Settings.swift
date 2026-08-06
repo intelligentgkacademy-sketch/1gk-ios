@@ -8,11 +8,11 @@ struct Cookie {
 let gcmMessageIDKey = "00000000000" // update this with actual ID if using Firebase 
 
 // URL for first launch
-let rootUrl = URL(string: "https://1ntelligentgk.netlify.app/tracker-app.html")!
+let rootUrl = URL(string: "https://book.intelligentgk.com/tracker-app")!
 
 // allowed origin is for what we are sticking to pwa domain
 // This should also appear in Info.plist
-let allowedOrigins: [String] = ["1ntelligentgk.netlify.app"]
+let allowedOrigins: [String] = ["book.intelligentgk.com"]
 
 // auth origins will open in modal and show toolbar for back into the main origin.
 // These should also appear in Info.plist

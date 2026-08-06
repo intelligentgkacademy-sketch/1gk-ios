@@ -6,14 +6,10 @@
 	<string>production</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:1ntelligentgk.netlify.app</string>
-		<string>webcredentials:1ntelligentgk.netlify.app</string>
+		<string>applinks:book.intelligentgk.com</string>
+		<string>webcredentials:book.intelligentgk.com</string>
 	</array>
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
-	<key>com.apple.security.device.audio-input</key>
-	<true/>
-	<key>com.apple.security.device.camera</key>
 	<true/>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
