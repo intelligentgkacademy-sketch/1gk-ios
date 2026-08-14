@@ -281,6 +281,9 @@ extension ViewController: WKScriptMessageHandler {
                 IAPManager.callback(["error": "no-product"])
             }
         }
+        if message.name == "iapRestore" {
+            IAPManager.shared.restore()
+        }
   }
 }
 
@@ -319,6 +322,28 @@ final class IAPManager: NSObject, SKProductsRequestDelegate, SKPaymentTransactio
             productsRequest = req
             req.start()
         }
+    }
+
+    // Restore a previous subscription (Apple requires a restore option). Restored
+    // transactions come back through updatedTransactions (.restored) and send the
+    // receipt to the web app the same way a purchase does.
+    func restore() {
+        guard SKPaymentQueue.canMakePayments() else {
+            IAPManager.callback(["error": "payments-disabled"])
+            return
+        }
+        SKPaymentQueue.default().restoreCompletedTransactions()
+    }
+
+    // MARK: SKPaymentTransactionObserver — restore outcome
+    func paymentQueueRestoreCompletedTransactionsFinished(_ queue: SKPaymentQueue) {
+        // If nothing was restored, no .restored transaction fired; tell the page.
+        if queue.transactions.isEmpty {
+            IAPManager.callback(["error": "no-restore"])
+        }
+    }
+    func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {
+        IAPManager.callback(["error": "restore-failed"])
     }
 
     // MARK: SKProductsRequestDelegate
