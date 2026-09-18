@@ -3,7 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>1ntelligent GK uses your location only when you tap “Near me”, to show goalkeeper coaches and sessions closest to you. Your location is never stored or shared.</string>
+	<string>1ntelligent GK uses your location when you tap “Near me”, to show goalkeeper coaches and sessions closest to you, and when a coach taps “I’m here” to check in for a session they are running. It is never used in the background.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>1ntelligent GK uses the camera when you choose to take a photo — a profile picture, a club badge, or a photo of a coaching certificate you are sending us to check.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>1ntelligent GK opens your photos when you choose to add one — a profile picture, a club badge, or a photo of a coaching certificate you are sending us to check.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -32,7 +36,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>7</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSApplicationCategoryType</key>
